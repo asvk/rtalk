@@ -3,7 +3,9 @@ package rtalk;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
+import redis.clients.jedis.exceptions.JedisException;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -51,8 +53,9 @@ public abstract class RedisDao {
         try {
             transaction = redis.multi();
             T retval = r.apply(transaction);
-            transaction.exec();
+            List<Object> results = transaction.exec();
             transaction = null;
+            checkResults(results);
             return retval;
         } finally {
             rollback(transaction);
@@ -66,8 +69,9 @@ public abstract class RedisDao {
         try {
             transaction = redis.multi();
             r.accept(transaction);
-            transaction.exec();
+            List<Object> results = transaction.exec();
             transaction = null;
+            checkResults(results);
             if (onOk != null) {
                 onOk.run();
             }
@@ -77,14 +81,22 @@ public abstract class RedisDao {
         }
     }
 
+    private void checkResults(List<Object> results) {
+        results.stream().filter(x -> !(x instanceof String)).forEach(x -> {
+            JedisException exception = (JedisException) x;
+            throw exception;
+        });
+    }
+
     protected void withRedisTransaction(Consumer<Transaction> r, Consumer<Jedis> onOk) {
         Jedis redis = getRedis();
         Transaction transaction = null;
         try {
             transaction = redis.multi();
             r.accept(transaction);
-            transaction.exec();
+            List<Object> results = transaction.exec();
             transaction = null;
+            checkResults(results);
             if (onOk != null) {
                 onOk.accept(redis);
             }

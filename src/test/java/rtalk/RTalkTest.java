@@ -21,6 +21,7 @@ import org.junit.Test;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.exceptions.JedisException;
 import rtalk.RTalk.Job;
 import rtalk.RTalk.Response;
 
@@ -47,6 +48,22 @@ public class RTalkTest {
         this.jedisPool = getJedisPool();
         try (Jedis j = jedisPool.getResource()) {
             j.flushDB();
+        }
+    }
+
+    @Test
+    public void restRedisRollback() throws Exception {
+        RTalk rt = new RTalk(jedisPool);
+
+        try {
+            rt.updateRedisTransaction(r -> {
+                r.set("data1", String.valueOf(42));
+                r.set("data2", String.valueOf(43));
+                r.zadd("data2", 0, "trash");
+                r.set("data2", String.valueOf(44));
+            });
+        } catch (Exception e) {
+            assertTrue(e instanceof JedisException);
         }
     }
 
