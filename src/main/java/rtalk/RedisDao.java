@@ -82,10 +82,13 @@ public abstract class RedisDao {
     }
 
     private void checkResults(List<Object> results) {
-        results.stream().filter(x -> !(x instanceof String)).forEach(x -> {
-            JedisException exception = (JedisException) x;
-            throw exception;
-        });
+        Object exception = results.stream()
+                .filter(x -> x instanceof JedisException)
+                .findFirst()
+                .orElse(null);
+        if (exception != null) {
+            throw (JedisException) exception;
+        }
     }
 
     protected void withRedisTransaction(Consumer<Transaction> r, Consumer<Jedis> onOk) {

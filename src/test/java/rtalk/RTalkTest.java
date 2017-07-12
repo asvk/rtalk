@@ -52,19 +52,21 @@ public class RTalkTest {
     }
 
     @Test
-    public void restRedisRollback() throws Exception {
+    public void testRedisException() throws Exception {
         RTalk rt = new RTalk(jedisPool);
-
+        boolean testSelfcheck = false;
         try {
             rt.updateRedisTransaction(r -> {
                 r.set("data1", String.valueOf(42));
-                r.set("data2", String.valueOf(43));
-                r.zadd("data2", 0, "trash");
-                r.set("data2", String.valueOf(44));
+                r.set("data1", String.valueOf(43));
+                r.zadd("data1", 0, "trash");
+                r.set("data1", String.valueOf(44));
             });
         } catch (Exception e) {
             assertTrue(e instanceof JedisException);
+            testSelfcheck = true;
         }
+        assertTrue(testSelfcheck);
     }
 
     @Test
