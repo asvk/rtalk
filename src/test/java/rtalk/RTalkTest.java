@@ -51,22 +51,15 @@ public class RTalkTest {
         }
     }
 
-    @Test
+    @Test (expected = JedisException.class)
     public void testRedisException() throws Exception {
         RTalk rt = new RTalk(jedisPool);
-        boolean testSelfcheck = false;
-        try {
-            rt.updateRedisTransaction(r -> {
-                r.set("data1", String.valueOf(42));
-                r.set("data1", String.valueOf(43));
-                r.zadd("data1", 0, "trash");
-                r.set("data1", String.valueOf(44));
-            });
-        } catch (Exception e) {
-            assertTrue(e instanceof JedisException);
-            testSelfcheck = true;
-        }
-        assertTrue(testSelfcheck);
+        rt.updateRedisTransaction(r -> {
+            r.set("data1", String.valueOf(42));
+            r.set("data1", String.valueOf(43));
+            r.zadd("data1", 0, "trash");
+            r.set("data1", String.valueOf(44));
+        });
     }
 
     @Test
